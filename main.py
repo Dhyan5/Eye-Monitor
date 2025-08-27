@@ -1,53 +1,86 @@
 import cv2
+import mediapipe as mp
+import numpy as np
+import subprocess
 import os
 import random
-import subprocess
 import psutil
 
-VIDEO_FOLDER = r"C:\Users\HP\Videos\video"
+video_folder=r"C:\Users\HP\Videos\video"
 
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
+mediapipe_face_mesh=mp.solutions.face_mesh
+face_mesh=mediapipe_face_mesh.FaceMesh(static_image_mode=False,max_num_faces=1)
 
-cap = cv2.VideoCapture(0)
-video_process = None
+mediapipe_drawing=mp.solutions.drawing_utils
 
-def kill_video(proc):
-    if proc and proc.poll() is None:
-        for p in psutil.Process(proc.pid).children(recursive=True):
-            p.terminate()
-        proc.terminate()
+camera=cv2.VideoCapture(0)
+video_process=None
+
+def eye_aspect_ratio(landmarks,indices):
+    points=np.array([landmarks[i] for i in indices])
+    vertical_1=np.linalg.norm(points[1]-points[5])
+    vertical_2=np.linalg.norm(points[2]-points[4])
+    horizontal=np.linalg.norm(points[0]-points[3])
+    ratio=(vertical_1+vertical_2)/(2.0*horizontal)
+    return ratio
+
+def stop_video(process):
+    if process and process.poll() is None:
+        for child in psutil.Process(process.pid).children(recursive=True):
+            child.terminate()
+        process.terminate()
+        
+left_eye_indices=[33,160,158,133,153,144]
+right_eye_indices=[362,385,387,263,373,380]
+
+ear_threshold=0.2
 
 while True:
-    ret, frame = cap.read()
-    if not ret:
+    success,frame=camera.read()
+    if not success:
         break
 
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
-    eyes_closed = False
+    frame_rgb=cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
+    result=face_mesh.process(frame_rgb)
 
-    for (x, y, w, h) in faces:
-        roi_gray = gray[y:y+h, x:x+w]
-        eyes = eye_cascade.detectMultiScale(roi_gray)
-        if len(eyes) == 0:
-            eyes_closed = True
-        break  # Only check first face
+    eyes_are_closed=False
 
-    if eyes_closed:
+    if result.multi_face_landmarks:
+        for face_landmarks in result.multi_face_landmarks:
+            frame_height,frame_width,_=frame.shape
+            landmarks=[(int(point.x*frame_width),int(point.y*frame_height)) for point in face_landmarks.landmark]
+
+            left_ear=eye_aspect_ratio(landmarks,left_eye_indices)
+            right_ear=eye_aspect_ratio(landmarks,right_eye_indices)
+            average_ear=(left_ear+right_ear)/2.0
+
+            if average_ear<ear_threshold:
+                eyes_are_closed=True
+
+            mediapipe_drawing.draw_landmarks(
+                frame,
+                face_landmarks,
+                mediapipe_face_mesh.FACEMESH_TESSELATION,
+                landmark_drawing_spec=None,
+                connection_drawing_spec=mediapipe_drawing.DrawingSpec(color=(0,255,0),thickness=1)
+            )
+            break
+
+    if eyes_are_closed:
         if video_process is None:
-            videos = [os.path.join(VIDEO_FOLDER, v) for v in os.listdir(VIDEO_FOLDER) if v.endswith((".mp4",".avi",".mov"))]
-            if videos:
-                video_choice = random.choice(videos)
-                video_process = subprocess.Popen(['start', '', video_choice], shell=True)
+            available_videos=[os.path.join(video_folder,file) for file in os.listdir(video_folder) if file.endswith((".mp4",".avi",".mov"))]
+            if available_videos:
+                selected_video=random.choice(available_videos)
+                video_process=subprocess.Popen(['start','',selected_video],shell=True)
     else:
-        kill_video(video_process)
-        video_process = None
+        stop_video(video_process)
+        video_process=None
 
-    cv2.imshow("Eye Tracker", frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    cv2.imshow("Eye State Monitor",frame)
+
+    if cv2.waitKey(1)&0xFF==ord('q'):
         break
 
-kill_video(video_process)
-cap.release()
+stop_video(video_process)
+camera.release()
 cv2.destroyAllWindows()
