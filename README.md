@@ -36,6 +36,8 @@ pip install mediapipe
 pip install numpy
 pip install psutil
 
+---
+
 📁 Setup
 
 Clone this repository or download the script manually.
@@ -49,6 +51,8 @@ Run the application:
 
 python eye_video_player.py
 
+---
+
 ▶️ Usage
 
 When the script runs, your webcam activates.
@@ -59,6 +63,8 @@ If you open your eyes, the video stops automatically.
 
 Press q anytime to quit the app.
 
+---
+
 📸 How It Works
 
 Uses MediaPipe Face Mesh to detect 468 facial landmarks.
@@ -68,6 +74,8 @@ Extracts coordinates for both eyes.
 Calculates Eye Aspect Ratio (EAR) to determine whether eyes are closed.
 
 Triggers a random video if EAR drops below a threshold.
+
+---
 
 🔮 Future Ideas
 
