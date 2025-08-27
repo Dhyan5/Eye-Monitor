@@ -53,7 +53,7 @@ python eye_video_player.py
 
 ---
 
-##▶️ Usage
+## ▶️ Usage
 
 When the script runs, your webcam activates.
 
@@ -65,7 +65,7 @@ Press q anytime to quit the app.
 
 ---
 
-##📸 How It Works
+## 📸 How It Works
 
 Uses MediaPipe Face Mesh to detect 468 facial landmarks.
 
@@ -77,7 +77,7 @@ Triggers a random video if EAR drops below a threshold.
 
 ---
 
-##🔮 Future Ideas(yet to be implemented)
+## 🔮 Future Ideas(yet to be implemented)
 
 Add sound or text-to-speech alerts
 
