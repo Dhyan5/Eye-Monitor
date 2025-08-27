@@ -44,9 +44,6 @@ Clone this repository or download the script manually.
 
 Create a video folder at the following path and add your videos:
 
-C:\Users\HP\Videos\video
-
-
 Run the application:
 
 python eye_video_player.py
